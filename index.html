@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Universe Tuner — a fine-tuning sandbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0d10; --panel:#13161b; --line:#2a3039; --ink:#eef1f5; --dim:#97a1ae;
+    --ok:#6cc28a; --warn:#d9a95b; --fail:#c66464; --accent:#6f8fb3; --accent-ink:#ffffff;
+    --serif:"Cormorant Garamond",Georgia,"Times New Roman",serif;
+    --sans:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 var(--sans);
+    background-image:radial-gradient(circle at 1px 1px,rgba(160,185,215,.05) 1px,transparent 0);background-size:22px 22px}
+  header{padding:22px 28px 4px;border-bottom:1px solid var(--line);margin:0 28px;padding-left:0;padding-right:0}
+  h1{margin:0;font:700 34px/1.1 var(--serif);letter-spacing:.01em}
+  h1 small{font:500 13px var(--mono);color:var(--accent);letter-spacing:.18em;text-transform:uppercase;display:block;margin-bottom:4px}
+  header p{margin:6px 0 14px;color:var(--dim);font-size:14px;max-width:760px}
+  .wrap{display:grid;grid-template-columns:minmax(300px,390px) 1fr;gap:22px;padding:18px 28px 28px}
+  @media (max-width:900px){.wrap{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:18px}
+  .panel h2{margin:0 0 14px;font:600 20px var(--serif);border-bottom:1px solid var(--line);padding-bottom:8px}
+  .knob{margin-bottom:18px}
+  .knob .top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .knob label{font-weight:600;font-size:14px;display:flex;align-items:center;gap:7px}
+  .knob .val{font:12px var(--mono);color:var(--accent);text-align:right}
+  .knob .hint{font-size:12px;color:var(--dim);margin-top:4px}
+  .info{width:18px;height:18px;padding:0;border-radius:50%;border:1px solid var(--dim);background:transparent;color:var(--dim);
+    font:italic 600 12px/16px var(--serif);display:inline-grid;place-items:center;cursor:pointer;flex:none}
+  .info:hover,.info.open{border-color:var(--accent);color:var(--accent-ink);background:var(--accent)}
+  .infobox{display:none;margin-top:8px;padding:10px 12px;border-left:2px solid var(--accent);background:#1a1f26;font-size:13px;color:#d8dee6;border-radius:0 3px 3px 0}
+  .infobox.open{display:block}
+  .infobox p{margin:0 0 6px} .infobox p:last-child{margin:0}
+  .infobox b{color:var(--ink)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;background:transparent;border-radius:2px;margin:10px 0 2px}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;height:15px;border-radius:50%;background:var(--accent);border:2px solid #fff;cursor:pointer;position:relative;z-index:2}
+  input[type=range]::-moz-range-thumb{width:13px;height:13px;border-radius:50%;background:var(--accent);border:2px solid #fff;cursor:pointer}
+  .track{position:relative;padding-bottom:14px}
+  .track input{position:relative;z-index:1;background:transparent}
+  .track .rail{position:absolute;left:0;right:0;top:10px;height:4px;background:var(--line);border-radius:2px}
+  .ours{position:absolute;top:5px;width:0;transform:translateX(-50%);pointer-events:none}
+  .ours::before{content:"";position:absolute;left:-1px;top:0;width:2px;height:14px;background:#fff}
+  .ours span{position:absolute;top:16px;left:50%;transform:translateX(-50%);font:600 9px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:#fff;white-space:nowrap}
+  .seg button{position:relative}
+  .seg button .tag{position:absolute;top:-7px;right:6px;font:600 8px var(--mono);letter-spacing:.1em;background:#fff;color:#0a0a0a;padding:0 4px;border-radius:2px}
+  .seg{display:flex;gap:6px;margin-top:8px}
+  .seg button{flex:1}
+  button{background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:7px 10px;font:inherit;font-size:13px;cursor:pointer}
+  button:hover{border-color:var(--accent)}
+  button.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+  .create{width:100%;padding:12px;font:700 19px var(--serif);letter-spacing:.03em;background:var(--accent);border:none;color:var(--accent-ink);margin-top:6px}
+  .create:hover{background:#7f9ec1}
+  .presets{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+  .right{display:flex;flex-direction:column;gap:14px}
+  .viewer{position:relative;border-radius:4px;overflow:hidden;border:1px solid var(--line);background:#000}
+  canvas{display:block;width:100%;height:340px}
+  .verdict{position:absolute;left:16px;bottom:12px;right:16px;display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none}
+  .verdict .big{font:700 26px var(--serif);text-shadow:0 2px 10px #000}
+  .verdict .tally{font:12px var(--mono);color:var(--dim);text-align:right;text-shadow:0 1px 4px #000}
+  .stages{display:flex;flex-direction:column;gap:0;border-left:1px solid var(--line);margin-left:12px}
+  .stage{position:relative;display:grid;grid-template-columns:1fr;padding:8px 12px 12px 26px;opacity:.2;transition:opacity .4s}
+  .stage.shown{opacity:1}
+  .stage .ic{position:absolute;left:-12px;top:8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:700 13px var(--mono);color:var(--bg);border:3px solid var(--bg)}
+  .ok .ic{background:var(--ok);color:#0b0d10} .warn .ic{background:var(--warn);color:#0b0d10} .fail .ic{background:var(--fail);color:#fff}
+  .fail h3{color:var(--fail)} .skip .ic{background:var(--line);color:var(--dim)}
+  .stage h3{margin:0;font:600 19px var(--serif);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+  .stage h3 span{font:11px var(--mono);color:var(--dim)}
+  .stage p{margin:2px 0 0;font-size:13.5px;color:#d3d9e1}
+  .skip p{color:var(--dim)}
+  .note{font-size:12px;color:var(--dim);border-top:1px solid var(--line);padding-top:10px}
+  .note b{color:var(--ink)}
+</style>
+</head>
+<body>
+<header>
+  <h1><small>Into the Multiverse · Fine-tuning lab</small>Universe Tuner</h1>
+  <p>Turn the knobs, press <b>Create Universe</b>, and watch what history your universe gets. Each knob is a multiplier on the value in <i>our</i> universe.</p>
+</header>
+
+<div class="wrap">
+  <div class="panel">
+    <h2>The constants of nature</h2>
+    <div id="knobs"></div>
+    <div class="knob">
+      <div class="top"><label>Spatial dimensions <button class="info" data-for="dims" aria-label="About spatial dimensions">i</button></label><span class="val" id="dimval">3</span></div>
+      <div class="seg" id="dims">
+        <button data-d="2">2</button><button data-d="3" class="on">3<span class="tag">OURS</span></button><button data-d="4">4</button>
+      </div>
+      <div class="infobox" id="info_dims">
+        <p><b>What it is:</b> how many independent directions space has. We live in three: up–down, left–right, forward–back.</p>
+        <p><b>What it controls:</b> how forces spread out. In 3D, gravity and electric forces weaken as 1/r², which is exactly what allows stable planetary orbits and stable electron orbitals in atoms (Ehrenfest, 1917).</p>
+        <p><b>If you change it:</b> in 4D, forces fall as 1/r³ and any orbit either spirals in or flies off. In 2D, there's too little room for complex structures; networks like nerves can't cross without intersecting.</p>
+        <p><b>Big question:</b> string theory suggests extra dimensions might exist but be curled up tiny. Why are exactly three large?</p>
+      </div>
+    </div>
+    <button class="create" id="create">Create Universe</button>
+    <div class="presets">
+      <button data-p="ours">Our universe</button>
+      <button data-p="random">Random universe</button>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="viewer">
+      <canvas id="sky" width="1200" height="340"></canvas>
+      <div class="verdict"><div class="big" id="verdict">Awaiting creation…</div><div class="tally" id="tally"></div></div>
+    </div>
+    <div class="stages" id="stages"></div>
+    <p class="note"><b>Caveat for class:</b> this is a toy. Each threshold is a rough rule of thumb taken from the fine-tuning literature (Rees's <i>Just Six Numbers</i>, Barrow &amp; Tipler, Weinberg on Λ, Oberhummer et al. and Epelbaum et al. on the Hoyle state, Carter on convective stars, Hogan on quark masses, Adams on stars in other universes). Real effects interact. Several are actively disputed; Adams, for example, argues stars are possible across a large share of parameter space. Changing one knob at a time also overstates the fine-tuning, which is itself a good discussion point.</p>
+  </div>
+</div>
+
+<script>
+// ---------- knob definitions ----------
+const INFO = {"G": "<p><b>What it is:</b> Newton's constant, G, sets how strongly every bit of mass attracts every other. Gravity is absurdly weak: between two protons, the electric force is about 10³⁶ times stronger. Martin Rees calls this ratio <i>N</i>.</p><p><b>What it controls:</b> how big stars, planets and the universe itself get, and how long stars burn. A star is a balance between gravity squeezing in and pressure pushing out.</p><p><b>If you change it:</b> stronger gravity means smaller, faster-burning stars. At ×10⁶, a Sun-like star lasts only about 10,000 years, far too short for evolution. Weaker gravity makes huge, slow stars and a sluggish universe.</p>", "a": "<p><b>What it is:</b> the fine-structure constant, α ≈ 1/137, measures the strength of electromagnetism. It's a pure number with no units, so it means the same thing to any civilization.</p><p><b>What it controls:</b> how tightly electrons are held to atoms (all of chemistry), how protons in a nucleus repel each other, and how light interacts with matter inside stars.</p><p><b>If you change it:</b> a few percent shifts the carbon-making \"Hoyle state\" in stars. Making it about 10× larger makes nuclei heavier than hydrogen unstable. It also has to stay balanced against gravity for stars to have the convection that may matter for planet formation (Carter's condition).</p>", "s": "<p><b>What it is:</b> the strong nuclear force, which glues quarks into protons and neutrons, and glues those together into nuclei. It's the strongest force but only reaches about the width of a nucleus.</p><p><b>What it controls:</b> which nuclei are stable, and how fusion proceeds in the Big Bang and in stars.</p><p><b>If you change it:</b> about 5% weaker and deuterium (one proton + one neutron) falls apart, which blocks the first step of fusion. A few percent stronger and two protons can bind, so the Big Bang may burn away all hydrogen, leaving no water. Even about 0.5% shifts how much carbon and oxygen stars make.</p>", "m": "<p><b>What it is:</b> the mass difference between the down quark and the up quark. A proton is two ups and a down; a neutron is two downs and an up.</p><p><b>What it controls:</b> which is heavier, the proton or the neutron. In our universe the neutron is heavier by just 1.29 MeV (about 0.14%), so isolated neutrons decay and protons are stable.</p><p><b>If you change it:</b> shrink the gap and the proton becomes the heavier one. Protons then capture electrons and turn into neutrons, leaving no hydrogen and no atoms. Widen it too much and neutrons decay even inside nuclei, so nothing heavier than hydrogen holds together. Note that α pulls the other way: electromagnetic energy makes the proton heavier.</p>", "L": "<p><b>What it is:</b> the cosmological constant, Λ, is the energy of empty space itself (\"dark energy\"). It pushes the universe to expand faster and faster.</p><p><b>What it controls:</b> whether gravity has time to pull matter into galaxies before expansion pulls everything apart.</p><p><b>If you change it:</b> a few hundred times larger and galaxies never form (Steven Weinberg's 1987 bound, which predicted a small positive Λ before it was discovered in 1998). This is the \"worst\" fine-tuning problem: quantum physics naively predicts a value up to 10¹²⁰ times larger than what we observe.</p>", "Q": "<p><b>What it is:</b> Q measures how lumpy the universe was just after the Big Bang. The density varied by about 1 part in 100,000 (Q ≈ 10⁻⁵), seen today as tiny temperature ripples in the cosmic microwave background.</p><p><b>What it controls:</b> these ripples are the seeds of every galaxy. Gravity amplifies slightly denser regions over billions of years.</p><p><b>If you change it:</b> below about 10⁻⁶, gas never cools and collapses into galaxies. Above about 10⁻⁴, galaxies are so dense that passing stars strip planets from their orbits. Much higher, and most matter collapses into black holes.</p>"};
+const KNOBS = [
+  {id:'G', name:'Gravity strength  (G)', min:-6, max:12, step:0.25, def:0, log:true,
+   hint:'Sets how hard matter pulls on matter. Rees: EM/gravity ratio N ≈ 10³⁶.',
+   fmt:v=>v===0?'×1 (ours)':`×10^${v.toFixed(2).replace(/\.?0+$/,'')}`},
+  {id:'a', name:'Electromagnetism  (α)', min:-1, max:1.3, step:0.005, def:0, log:true,
+   hint:'The fine-structure constant, ≈ 1/137. Sets chemistry and the repulsion between protons.',
+   fmt:v=>{const f=Math.pow(10,v);return `×${f.toFixed(3)}  (α ≈ 1/${(137/f).toFixed(1)})`}},
+  {id:'s', name:'Strong nuclear force', min:-15, max:15, step:0.1, def:0, log:false,
+   hint:'Binds protons and neutrons together in nuclei.',
+   fmt:v=>`${v>0?'+':''}${v.toFixed(1)}%`},
+  {id:'m', name:'Down–up quark mass gap', min:0, max:3, step:0.02, def:1, log:false,
+   hint:'Sets whether the neutron or the proton is heavier.',
+   fmt:v=>`×${v.toFixed(2)}`},
+  {id:'L', name:'Cosmological constant  (Λ)', min:-3, max:6, step:0.1, def:0, log:true,
+   hint:'Dark energy. Drives accelerated expansion.',
+   fmt:v=>v===0?'×1 (ours)':`×10^${v.toFixed(1)}`},
+  {id:'Q', name:'Primordial lumpiness  (Q)', min:-2, max:3, step:0.05, def:0, log:true,
+   hint:'Size of the density ripples after the Big Bang. Ours: Q ≈ 10⁻⁵.',
+   fmt:v=>`Q ≈ ${(1e-5*Math.pow(10,v)).toExponential(1)}`},
+];
+const state = {dims:3};
+const kEl = document.getElementById('knobs');
+KNOBS.forEach(k=>{
+  state[k.id]=k.def;
+  const d=document.createElement('div'); d.className='knob';
+  d.innerHTML=`<div class="top"><label for="k_${k.id}">${k.name} <button class="info" data-for="${k.id}" aria-label="About ${k.name}">i</button></label><span class="val" id="v_${k.id}"></span></div>
+    <div class="track"><div class="rail"></div>
+      <div class="ours" style="left:calc(7.5px + (100% - 15px) * ${(k.def-k.min)/(k.max-k.min)})"><span>ours</span></div>
+      <input type="range" id="k_${k.id}" min="${k.min}" max="${k.max}" step="${k.step}" value="${k.def}"></div>
+    <div class="hint">${k.hint}</div>
+    <div class="infobox" id="info_${k.id}">${INFO[k.id]}</div>`;
+  kEl.appendChild(d);
+  const inp=d.querySelector('input');
+  inp.addEventListener('input',()=>{state[k.id]=+inp.value;refreshVals()});
+});
+function refreshVals(){KNOBS.forEach(k=>{document.getElementById('v_'+k.id).textContent=k.fmt(state[k.id]);document.getElementById('k_'+k.id).value=state[k.id]});document.getElementById('dimval').textContent=state.dims;
+  document.querySelectorAll('#dims button').forEach(b=>b.classList.toggle('on',+b.dataset.d===state.dims));}
+document.querySelectorAll('#dims button').forEach(b=>b.onclick=()=>{state.dims=+b.dataset.d;refreshVals()});
+refreshVals();
+document.querySelectorAll('.info').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();
+  const box=document.getElementById('info_'+b.dataset.for); const open=!box.classList.contains('open');
+  box.classList.toggle('open',open); b.classList.toggle('open',open);}));
+
+// ---------- the "physics" (heuristic rules) ----------
+function evaluate(S){
+  const g=Math.pow(10,S.G), a=Math.pow(10,S.a), ds=S.s, mq=S.m, L=Math.pow(10,S.L), q=Math.pow(10,S.Q);
+  const st=[]; let dead=false; const viz={mode:'galaxies',starColor:'#ffffff',q,short:false,dims:S.dims};
+  const push=(name,time,status,text)=>{ if(dead) status='skip', text='Never happened — an earlier stage failed.'; st.push({name,time,status,text}); if(status==='fail') dead=true; };
+
+  // 1. Geometry
+  if(S.dims===3) push('Geometry','t = 0','ok','Three spatial dimensions, so stable orbits and stable atoms are possible.');
+  else if(S.dims===2){ push('Geometry','t = 0','fail','In 2D, gravity doesn\'t fall off with distance in the usual way and there\'s no room for complex wiring. Nerves and blood vessels can\'t cross without cutting the organism in two.'); viz.mode='flat'; }
+  else { push('Geometry','t = 0','fail','In 4D, gravity and electric forces fall off as 1/r³. Planetary orbits and electron orbitals are unstable (Ehrenfest, 1917), so there are no atoms and no solar systems.'); viz.mode='chaos'; }
+
+  // 2. Proton vs neutron
+  const dnp = 2.49*mq - 1.20*a; // MeV: quark mass contribution minus electromagnetic self-energy
+  if(dnp < 0.511){ push('Protons & neutrons','10⁻⁶ s','fail',`Neutron–proton mass gap is ${dnp.toFixed(2)} MeV. That's less than the electron mass, so protons swallow electrons and turn into neutrons. You get a universe of neutrons with no hydrogen, no atoms and no chemistry.`); if(!dead||viz.mode==='galaxies') viz.mode='neutron'; }
+  else push('Protons & neutrons','10⁻⁶ s','ok',`Neutron is heavier by ${dnp.toFixed(2)} MeV (ours: 1.29), so free protons are stable. Hydrogen can exist.`);
+
+  // 3. Nuclear binding
+  const Bd = 2.22 + 0.45*ds;               // deuteron binding, MeV
+  const diThresh = 3 + 3*(a-1);            // strong-force boost (%) that binds the diproton
+  if(Bd <= 0) { push('Nuclear binding','1 s','fail',`Weakening the strong force by ${(-ds).toFixed(1)}% leaves deuterium unbound. Without it, the first step of fusion is blocked, so the universe stays almost pure hydrogen and ordinary stars can't burn.`); if(viz.mode==='galaxies') viz.mode='dark'; }
+  else if(dnp > Bd + 0.511) { push('Nuclear binding','1 s','fail','Neutrons are now so much heavier that they decay even inside nuclei. Deuterium and everything heavier fall apart, leaving only hydrogen.'); if(viz.mode==='galaxies') viz.mode='dark'; }
+  else if(ds > diThresh) { push('Nuclear binding','3 min','fail',`At +${ds.toFixed(1)}% strong force, two protons can bind (a "diproton"). Hydrogen fuses almost instantly in the Big Bang, so no hydrogen survives: no water, and no long, steady stars. (Contested: some later work says stars could still burn, just differently.)`); if(viz.mode==='galaxies'){viz.mode='galaxies';viz.short=true;viz.starColor='#ffffff';} }
+  else if(a/137 > 0.1) { push('Nuclear binding','3 min','fail',`α ≈ 1/${(137/a).toFixed(0)}. Electric repulsion between protons overwhelms the strong force for carbon and heavier nuclei, so the periodic table stops before carbon.`); }
+  else push('Nuclear binding','3 min','ok','Deuterium is bound, diprotons aren\'t. The Big Bang leaves about 75% hydrogen and 25% helium.');
+
+  // 4. Structure
+  const lamMax = 200*q*q*q;
+  viz.struct = q<0.1?'faint' : L>lamMax?'lambda' : q>300?'bh' : q>10?'dense' : 'normal';
+  viz.cmb = S.dims===3 && dnp>=0.511;
+  if(q < 0.1) { push('Galaxies','~400 Myr','fail',`Q ≈ ${(1e-5*q).toExponential(1)}. The ripples are too faint: gas never collapses and cools into galaxies. The universe stays a thin, dark fog.`); if(viz.mode==='galaxies') viz.mode='smooth'; }
+  else if(L > lamMax) { push('Galaxies','~400 Myr','fail',`Dark energy is ×${L.toExponential(0)} ours. Expansion speeds up before matter can clump (Weinberg's bound), so there are no galaxies, just thinning gas.`); if(viz.mode==='galaxies') viz.mode='smooth'; }
+  else if(q > 300) { push('Galaxies','~1 Myr','fail','Ripples are so large that most matter collapses straight into black holes instead of stars.'); if(viz.mode==='galaxies') viz.mode='bh'; }
+  else if(q > 10) push('Galaxies','~100 Myr','warn','Galaxies form early and are extremely dense. Nearby stars pass close often enough to strip planets from their orbits, and black holes are common.');
+  else push('Galaxies','~400 Myr','ok', L>20? 'Galaxies form, though dark energy kicks in early and stops further growth.' : 'Galaxies form from the ripples; gravity wins over expansion in time.');
+
+  // 5. Stars
+  const tStar = 10/g;                  // Gyr, Sun-like star lifetime (Rees scaling ~1/G)
+  const carter = Math.pow(a,12)/g;     // Carter's condition: alpha^12 (me/mp)^4 ~ alpha_G
+  let starText = `A Sun-like star now lives about ${fmtTime(tStar)}.`;
+  if(carter > 50){ viz.starColor='#d98a7a'; push('Stars','~500 Myr','warn',starText+' Carter\'s balance (α¹² vs G) is off: every star is a convective red dwarf. Carter speculated this could block planet formation or supernovae.'); }
+  else if(carter < 0.02){ viz.starColor='#e8f0ff'; push('Stars','~500 Myr','warn',starText+' Carter\'s balance (α¹² vs G) is off: every star is a hot radiative blue giant, burning fast and lacking convection.'); }
+  else push('Stars','~500 Myr','ok',starText+(g>10?' Gravity is stronger, so stars are smaller and burn faster.':g<0.1?' Gravity is weaker, so stars are huge and slow.':''));
+  if(tStar<1) viz.short=true;
+
+  // 6. Heavy elements
+  const da=Math.abs(a-1)*100, ads=Math.abs(ds);
+  if(ads>2 || da>15) push('Carbon & oxygen','~1 Gyr','fail',`The Hoyle resonance in carbon-12 moves well out of position (strong ${ds>=0?'+':''}${ds.toFixed(1)}%, α ${a>=1?'+':'−'}${da.toFixed(1)}%). Stars make almost no carbon, or burn all of it into oxygen.`);
+  else if(ads>0.5 || da>4) push('Carbon & oxygen','~1 Gyr','warn','Near the edge of Oberhummer et al.\'s (2000) window. Carbon or oxygen output drops by roughly 30–1000×. Later lattice work (Epelbaum et al.) suggests some extra room.');
+  else push('Carbon & oxygen','~1 Gyr','ok','The Hoyle state sits at the right energy. Stars forge carbon and oxygen, and supernovae scatter them.');
+
+  // 7. Planets & life
+  if(tStar < 0.1) push('Planets & life','—','fail',`Stars last only ${fmtTime(tStar)}. That isn't enough time for planets to cool, let alone for evolution (Earth took about 4 billion years to make animals).`);
+  else if(tStar < 4) push('Planets & life','~4 Gyr?','warn',`Stars last ${fmtTime(tStar)}. Simple life is maybe possible; complex life would need to evolve much faster than it did on Earth.`);
+  else push('Planets & life','~4 Gyr','ok','Long-lived stars, rocky planets, carbon and water. The conditions for life as we know it are present.');
+
+  const fails=st.filter(x=>x.status==='fail').length, warns=st.filter(x=>x.status==='warn').length;
+  let verdict, vcol;
+  if(fails){ const reached=st.findIndex(x=>x.status==='fail'); verdict=`Lifeless: ${['no viable geometry','no hydrogen','no complex nuclei','no galaxies','no stars','no carbon','no time for life'][reached]}`; vcol='var(--fail)'; }
+  else if(warns){ verdict='Marginal: life faces headwinds'; vcol='var(--warn)'; }
+  else { verdict = isOurs(S)? 'Our universe ☺' : 'Life-friendly universe'; vcol='var(--ok)'; }
+  return {stages:st, verdict, vcol, habitable:!fails, viz};
+}
+function isOurs(S){return S.G===0&&S.a===0&&S.s===0&&S.m===1&&S.L===0&&S.Q===0&&S.dims===3}
+function fmtTime(gyr){ if(gyr>=1) return `${gyr<100?gyr.toFixed(1):gyr.toExponential(0)} billion years`; const y=gyr*1e9; if(y>=1e6) return `${(y/1e6).toFixed(y<1e7?1:0)} million years`; if(y>=1) return `${Math.round(y).toLocaleString()} years`; return `${(y*365).toFixed(1)} days`; }
+
+// ---------- rendering ----------
+const cv=document.getElementById('sky'), cx=cv.getContext('2d');
+let anim=null, scene=null, t0=0;
+function resize(){ const r=cv.getBoundingClientRect(); cv.width=r.width*devicePixelRatio; cv.height=r.height*devicePixelRatio; }
+window.addEventListener('resize',()=>{ resize(); if(scene){ const v=scene.viz; scene=buildScene(v,scene.seed); } }); resize();
+
+function rnd(seed){return ()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646}}
+// --- smooth random fields (value noise) for the CMB and the cosmic web ---
+function hsh(i,j,s){ let n=(Math.imul(i,374761393)+Math.imul(j,668265263)+Math.imul(s,1442695041))|0; n=Math.imul(n^(n>>>13),1274126177); n^=n>>>16; return (n>>>0)/4294967295*2-1; }
+function vnoise(x,y,s){ const i=Math.floor(x),j=Math.floor(y),fx=x-i,fy=y-j,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy);
+  const a=hsh(i,j,s),b=hsh(i+1,j,s),c=hsh(i,j+1,s),d=hsh(i+1,j+1,s); return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v; }
+function fbm(x,y,s,oct){ let t=0,amp=1,f=1,n=0; for(let o=0;o<oct;o++){ t+=amp*vnoise(x*f,y*f,s+o*101); n+=amp; amp*=0.55; f*=2; } return t/n; }
+
+const GW=260; let GH, F, WEB, oc, octx, img;
+function buildField(seed){
+  GH=Math.max(20,Math.round(GW*cv.height/cv.width));
+  F=new Float32Array(GW*GH); WEB=new Float32Array(GW*GH);
+  let sd=0;
+  for(let y=0;y<GH;y++) for(let x=0;x<GW;x++){
+    const i=y*GW+x, u=x/GW*14, v=y/GW*14;
+    F[i]=fbm(u,v,seed,5);
+    const h=fbm(u*0.55+7.3,v*0.55+1.1,seed+999,4);
+    WEB[i]=Math.pow(1-Math.min(1,Math.abs(h)*3.2),3);   // ridges -> filaments
+    sd+=F[i]*F[i];
+  }
+  sd=Math.sqrt(sd/F.length); for(let i=0;i<F.length;i++) F[i]=Math.max(-1,Math.min(1,F[i]/(2.6*sd)));
+  oc=document.createElement('canvas'); oc.width=GW; oc.height=GH; octx=oc.getContext('2d'); img=octx.createImageData(GW,GH);
+}
+function densityAt(i){ return (F[i]+1)/2*(0.35+WEB[i]); }   // matter density today (rough)
+
+// CMB colour map: cold -> mid -> hot
+const CM=[[18,34,64],[64,104,150],[196,206,218],[214,170,120],[160,96,62]];
+function cmap(t){ t=Math.max(0,Math.min(1,t))*(CM.length-1); const i=Math.min(CM.length-2,Math.floor(t)), f=t-i, a=CM[i], b=CM[i+1]; return [a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f]; }
+
+// phase timing (seconds)
+const T={flash:1.2, cmbIn:1.2, cmbHold:3.4, grow:6.6, final:7.8};
+
+function buildScene(viz,seed){
+  seed=seed||Math.floor(Math.random()*1e9);
+  const R=rnd(seed), W=cv.width, H=cv.height, sc={viz,seed,stars:[],gals:[],bhs:[],burst:[]};
+  buildField(seed%100000);
+  for(let i=0;i<500;i++){const ang=R()*Math.PI*2, sp=R()*1.0+0.2; sc.burst.push({ang,sp,hue:205+R()*25});}
+  // local maxima of present-day density => where galaxies / black holes sit
+  const peaks=[];
+  for(let y=2;y<GH-2;y++) for(let x=2;x<GW-2;x++){ const i=y*GW+x, d=densityAt(i); let top=true;
+    for(let dy=-2;dy<=2&&top;dy++) for(let dx=-2;dx<=2;dx++){ if((dx||dy)&&densityAt(i+dy*GW+dx)>d){top=false;break;} }
+    if(top) peaks.push({x:x/GW*W,y:y/GH*H,d}); }
+  peaks.sort((a,b)=>b.d-a.d);
+  const sampleDense=(n,sharp)=>{ const out=[]; let guard=0; while(out.length<n&&guard++<n*60){ const x=R()*W,y=R()*H; const gi=Math.min(GH-1,Math.floor(y/H*GH))*GW+Math.min(GW-1,Math.floor(x/W*GW)); if(R()<Math.pow(densityAt(gi),sharp)*1.6) out.push({x,y}); } return out; };
+  if(viz.mode==='galaxies'){
+    const n=Math.round(Math.min(40,Math.max(5,12*Math.pow(viz.q,0.5))));
+    peaks.slice(0,n).forEach(p=>sc.gals.push({x:p.x,y:p.y,r:(10+R()*22)*devicePixelRatio/Math.pow(viz.q,0.25),rot:R()*6,tilt:0.3+R()*0.7,arms:2+Math.floor(R()*2),sp:(R()-.5)*0.0003}));
+    sampleDense(420,2.2).forEach(p=>sc.stars.push({...p,s:R()*1.5+0.3,ph:R()*10,life:R()}));
+  } else if(viz.mode==='bh'){
+    peaks.slice(0,16).forEach(p=>sc.bhs.push({x:p.x,y:p.y,r:(8+R()*20)*devicePixelRatio}));
+    sampleDense(80,2).forEach(p=>sc.stars.push({...p,s:R()*1+0.2,ph:R()*10,life:R()}));
+  } else {
+    for(let i=0;i<260;i++) sc.stars.push({x:R()*W,y:R()*H,s:R()*1.2+0.2,ph:R()*10,life:R(),vx:(R()-.5),vy:(R()-.5)});
+  }
+  return sc;
+}
+
+// draws the CMB (p=0) evolving into the cosmic web (p=1)
+function drawField(p, alpha){
+  const v=scene.viz, s=v.struct, d=img.data;
+  const contrast = Math.min(1.6, 0.25+0.75*Math.pow(v.q,0.35));   // Q sets how strong the ripples are
+  const growMax = s==='faint'?0.12 : s==='lambda'?0.25 : s==='bh'?1.4 : s==='dense'?1.15 : 1;
+  const g = p*growMax, expo=1+7*g;
+  for(let i=0;i<F.length;i++){
+    const c=cmap(0.5+0.5*F[i]*contrast);
+    let w=Math.pow(Math.min(1,densityAt(i)*(0.9+0.2*contrast)),expo)*(1+3*g);
+    if(s==='bh' && p>0.6 && w>0.55) w=Math.max(0,1-(w-0.55)*4*(p-0.6)/0.4); // cores collapse to black
+    const fade = (s==='faint'||s==='lambda') ? 1-0.75*p : 1;
+    const wr=Math.min(255,150*w), wg=Math.min(255,175*w), wb=Math.min(255,215*w);
+    const k=Math.min(1,p*1.4);
+    d[i*4]  =(c[0]*(1-k)+wr*k)*fade;
+    d[i*4+1]=(c[1]*(1-k)+wg*k)*fade;
+    d[i*4+2]=(c[2]*(1-k)+wb*k)*fade;
+    d[i*4+3]=255;
+  }
+  octx.putImageData(img,0,0);
+  const W=cv.width,H=cv.height, z = s==='lambda' ? 1+0.6*p : 1;   // runaway expansion stretches the pattern
+  cx.save(); cx.globalAlpha=alpha; cx.imageSmoothingEnabled=true; cx.imageSmoothingQuality='high';
+  cx.drawImage(oc, W/2-W*z/2, H/2-H*z/2, W*z, H*z); cx.restore();
+}
+function caption(txt, sub, alpha){
+  if(alpha<=0) return; const dp=devicePixelRatio; cx.save(); cx.globalAlpha=alpha;
+  cx.font=`600 ${12*dp}px "IBM Plex Mono",monospace`; const w1=cx.measureText(txt).width;
+  cx.font=`${11*dp}px "IBM Plex Sans",sans-serif`; const w2=sub?cx.measureText(sub).width:0;
+  cx.fillStyle='rgba(8,10,14,.72)'; cx.beginPath(); cx.roundRect(8*dp,8*dp,Math.max(w1,w2)+16*dp,(sub?42:26)*dp,4*dp); cx.fill();
+  cx.font=`600 ${12*dp}px "IBM Plex Mono",monospace`; cx.fillStyle='#e6edf5'; cx.fillText(txt,16*dp,26*dp);
+  if(sub){ cx.font=`${11*dp}px "IBM Plex Sans",sans-serif`; cx.fillStyle='#aab6c4'; cx.fillText(sub,16*dp,42*dp); }
+  cx.restore();
+}
+const clamp01=x=>Math.max(0,Math.min(1,x));
+
+function draw(now){
+  const W=cv.width,H=cv.height,t=(now-t0)/1000,v=scene.viz;
+  cx.fillStyle='#000'; cx.fillRect(0,0,W,H);
+  const hasCMB=v.cmb;
+  const settleStart = hasCMB ? T.grow : T.flash, settleLen = hasCMB ? (T.final-T.grow) : 1.5;
+  const settle=clamp01((t-settleStart)/settleLen);
+
+  // 1) Big Bang flash
+  if(t<T.flash+1.2){
+    const k=clamp01(1-(t-T.flash*0.5)/1.4);
+    const g=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*(0.1+t*0.5));
+    g.addColorStop(0,`rgba(240,246,255,${0.9*k})`); g.addColorStop(1,'rgba(40,70,120,0)');
+    cx.fillStyle=g; cx.fillRect(0,0,W,H);
+    scene.burst.forEach(p=>{const d=t*p.sp*Math.max(W,H)*0.6; cx.fillStyle=`hsla(${p.hue},35%,80%,${k})`; cx.fillRect(W/2+Math.cos(p.ang)*d,H/2+Math.sin(p.ang)*d,2*devicePixelRatio,2*devicePixelRatio);});
+  }
+
+  // 2) CMB -> 3) growth of structure
+  if(hasCMB && t>T.cmbIn*0.6){
+    const p = clamp01((t-T.cmbHold)/(T.grow-T.cmbHold));
+    const a = clamp01((t-T.cmbIn*0.6)/0.8) * (v.mode==='galaxies'||v.mode==='bh' ? 1-0.65*settle : 1-settle);
+    if(a>0.01) drawField(p, a);
+    const s=v.struct;
+    if(t<T.cmbHold) caption('t ≈ 380,000 years · cosmic microwave background', v.q<0.1?'Barely any hot or cold spots. The ripples are nearly invisible.' : v.q>10?'Strong hot and cold spots. Big density ripples.' : 'Hot and cold spots: density ripples of about 1 part in 100,000.', clamp01((t-T.cmbIn)/0.5)*(1-settle));
+    else caption(s==='lambda'?'Dark energy wins':'t ≈ 0.1–10 billion years · gravity grows the ripples',
+      s==='faint'?'The ripples are too weak to collapse. The gas just spreads out.' : s==='lambda'?'Expansion stretches the ripples apart before they can collapse.' : s==='bh'?'The densest regions collapse all the way into black holes.' : 'Dense regions pull in matter: filaments, clusters and empty voids form.',
+      (1-settle));
+  }
+
+  // 4) final scene
+  cx.globalAlpha=settle;
+  const mode=v.mode;
+  if(mode==='neutron'){ const g=cx.createLinearGradient(0,0,W,H); g.addColorStop(0,'#1a1c22'); g.addColorStop(1,'#2a2c34'); cx.fillStyle=g; cx.fillRect(0,0,W,H);
+    scene.stars.forEach(s=>{cx.fillStyle='rgba(200,200,200,.2)'; cx.fillRect(s.x,s.y,s.s*devicePixelRatio,s.s*devicePixelRatio)}); }
+  else if(mode==='smooth'||mode==='dark'){
+    if(!hasCMB||mode==='smooth'){ const g=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,W*0.7); g.addColorStop(0,'#10151c'); g.addColorStop(1,'#000'); cx.fillStyle=g; cx.fillRect(0,0,W,H); }
+    const spread=mode==='smooth'? 1+Math.max(0,t-settleStart)*0.03 : 1;
+    scene.stars.forEach(s=>{const x=W/2+(s.x-W/2)*spread, y=H/2+(s.y-H/2)*spread; cx.fillStyle=mode==='dark'?'rgba(120,150,190,.18)':'rgba(255,255,255,.1)'; cx.beginPath(); cx.arc(x,y,s.s*1.5*devicePixelRatio,0,7); cx.fill();}); }
+  else if(mode==='flat'){ cx.strokeStyle='rgba(122,150,184,.55)'; cx.lineWidth=devicePixelRatio; for(let i=0;i<14;i++){cx.beginPath(); for(let x=0;x<=W;x+=8){const y=H/14*i+H/28+Math.sin(x/90+t+i)*8*devicePixelRatio; x?cx.lineTo(x,y):cx.moveTo(x,y);} cx.stroke();} }
+  else if(mode==='chaos'){ scene.stars.forEach(s=>{s.x+=s.vx*3*devicePixelRatio; s.y+=s.vy*3*devicePixelRatio; if(s.x<0||s.x>W)s.vx*=-1; if(s.y<0||s.y>H)s.vy*=-1; cx.fillStyle='rgba(150,180,215,.75)'; cx.fillRect(s.x,s.y,2*devicePixelRatio,2*devicePixelRatio);}); }
+  else if(mode==='bh'){
+    scene.stars.forEach(s=>{cx.fillStyle='rgba(255,255,255,.4)'; cx.fillRect(s.x,s.y,s.s*devicePixelRatio,s.s*devicePixelRatio)});
+    scene.bhs.forEach(b=>{ const g=cx.createRadialGradient(b.x,b.y,b.r*0.6,b.x,b.y,b.r*2.2); g.addColorStop(0,'rgba(230,190,140,.9)'); g.addColorStop(0.4,'rgba(170,110,70,.35)'); g.addColorStop(1,'rgba(0,0,0,0)'); cx.fillStyle=g; cx.beginPath(); cx.arc(b.x,b.y,b.r*2.2,0,7); cx.fill(); cx.fillStyle='#000'; cx.beginPath(); cx.arc(b.x,b.y,b.r*0.75,0,7); cx.fill(); });
+  } else { // galaxies
+    scene.stars.forEach(s=>{ let a=0.35+0.35*Math.sin(t*2+s.ph); if(v.short){ a = ((t*0.8+s.life*5)%1)<0.15 ? 1 : 0.05; } cx.fillStyle=v.starColor; cx.globalAlpha=settle*a; cx.fillRect(s.x,s.y,s.s*devicePixelRatio,s.s*devicePixelRatio); });
+    cx.globalAlpha=settle;
+    scene.gals.forEach(gl=>{ gl.rot+=gl.sp*16; cx.save(); cx.translate(gl.x,gl.y); cx.scale(1,gl.tilt); cx.rotate(gl.rot);
+      const core=cx.createRadialGradient(0,0,0,0,0,gl.r*0.5); core.addColorStop(0,'rgba(255,255,255,.95)'); core.addColorStop(1,'rgba(255,255,255,0)'); cx.fillStyle=core; cx.beginPath(); cx.arc(0,0,gl.r*0.5,0,7); cx.fill();
+      for(let arm=0;arm<gl.arms;arm++){ for(let i=0;i<60;i++){ const f=i/60, th=f*4+arm*2*Math.PI/gl.arms, rr=f*gl.r; cx.fillStyle=`rgba(${v.starColor==='#d98a7a'?'225,150,135':'225,232,242'},${0.6*(1-f)})`; cx.beginPath(); cx.arc(Math.cos(th)*rr,Math.sin(th)*rr,(1.6-f)*devicePixelRatio,0,7); cx.fill(); } }
+      cx.restore(); });
+  }
+  cx.globalAlpha=1;
+}
+function loop(now){ draw(now); anim=requestAnimationFrame(loop); }
+
+// ---------- create ----------
+let made=0, alive=0, timers=[];
+const stEl=document.getElementById('stages');
+function create(){
+  timers.forEach(clearTimeout); timers=[];
+  const res=evaluate({...state});
+  made++; if(res.habitable) alive++;
+  document.getElementById('tally').innerHTML=`universes created: ${made}<br>life-friendly: ${alive}`;
+  const vEl=document.getElementById('verdict'); vEl.textContent='Running cosmic history…'; vEl.style.color='var(--ink)';
+  stEl.innerHTML=res.stages.map(s=>`<div class="stage ${s.status}"><div class="ic">${{ok:'✓',warn:'!',fail:'✕',skip:'–'}[s.status]}</div><div><h3>${s.name}<span>${s.time}</span></h3><p>${s.text}</p></div></div>`).join('');
+  // reveal each stage roughly when it happens in the animation
+  const cmb=res.viz.cmb, at = cmb ? [0.5,0.9,1.3,4.6,T.final,T.final+0.5,T.final+1.0] : [0.5,0.9,1.3,1.7,2.1,2.5,2.9];
+  [...stEl.children].forEach((el,i)=>timers.push(setTimeout(()=>el.classList.add('shown'),at[i]*1000)));
+  timers.push(setTimeout(()=>{vEl.textContent=res.verdict; vEl.style.color=res.vcol;},(at[at.length-1]+0.5)*1000));
+  scene=buildScene(res.viz); t0=performance.now(); if(!anim) anim=requestAnimationFrame(loop);
+}
+document.getElementById('create').onclick=create;
+
+const PRESETS={ ours:{G:0,a:0,s:0,m:1,L:0,Q:0,dims:3} };
+document.querySelectorAll('.presets button').forEach(b=>b.onclick=()=>{
+  const p=b.dataset.p;
+  if(p==='random'){ KNOBS.forEach(k=>{const n=Math.round((k.min+Math.random()*(k.max-k.min))/k.step)*k.step; state[k.id]=+n.toFixed(4);}); state.dims=[2,3,3,3,4][Math.floor(Math.random()*5)]; }
+  else Object.assign(state,PRESETS[p]);
+  refreshVals(); create();
+});
+// initial static sky
+scene=buildScene({mode:'smooth'}); t0=performance.now()-5000; draw(performance.now());
+</script>
+</body>
+</html>
