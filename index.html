@@ -104,6 +104,7 @@
   .bar .n{font:11px var(--mono);color:var(--dim)}
   .rr{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--dim)}
   .rr input[type=range]{flex:1;margin:0;background:var(--line)}
+  .knob label sub{font-size:.72em;vertical-align:-.25em;line-height:0;letter-spacing:0;margin:0}
 </style>
 </head>
 <body>
@@ -159,7 +160,7 @@
     <div class="panel">
       <h2 style="margin:0 0 10px;font:600 20px var(--serif);border-bottom:1px solid var(--line);padding-bottom:8px">Random universes</h2>
       <div class="rr"><span>How far can each knob wander from ours?</span><input type="range" id="rrange" min="5" max="100" step="5" value="100"><span id="rrval" style="font-family:var(--mono);color:var(--accent)">100% of its range</span></div>
-      <div class="tools"><label><input type="checkbox" id="rdims" checked> also randomize the number of dimensions</label></div>
+      <div class="tools"><label><input type="checkbox" id="rdims"> also randomize the number of dimensions</label></div>
       <div class="tools"><button id="rand1">Make one random universe</button><button id="rand1000">Make 1,000 random universes</button></div>
       <div class="batch" id="batch"></div>
     </div>
@@ -173,9 +174,10 @@
 // knob definitions
 // =====================================================================================
 const INFO = {
- G: "<p><b>What it is:</b> G sets how strongly every bit of matter pulls on every other bit. Gravity is extremely weak: a small fridge magnet can hold up a paperclip against the pull of the entire Earth.</p><p><b>What it controls:</b> stars. A star is a giant ball of hot gas. Gravity squeezes it inward; the hot gas pushes back outward; fusion in the core keeps the gas hot. That tug-of-war sets how big a star gets and how fast it burns its fuel.</p><p><b>If you change it:</b> stronger gravity squeezes harder, so stars run hotter and burn out sooner. Weaker gravity gives bigger, slower stars.</p>",
+ G: "<p><b>What it is:</b> G sets how strongly every bit of matter pulls on every other bit. Gravity is extremely weak: a small fridge magnet can hold up a paperclip against the pull of the entire Earth.</p><p><b>What it controls:</b> stars. A star is a giant ball of hot gas. Gravity squeezes it inward; the hot gas pushes back outward; fusion in the core keeps the gas hot. That tug-of-war sets how big a star gets and how fast it burns its fuel.</p><p><b>If you change it:</b> stronger gravity squeezes harder, so stars are smaller, run hotter and burn out sooner. Weaker gravity gives bigger, slower stars.</p>",
  a: "<p><b>What it is:</b> α (about 1/137) measures the strength of electromagnetism, the force between electric charges: opposites attract, likes repel. It is a pure number, so aliens anywhere would measure the same value.</p><p><b>What it controls:</b> it holds electrons around the nucleus, so it runs all of chemistry. It also makes the protons inside a nucleus push each other apart, and it affects how light and heat move through stars.</p><p><b>If you change it:</b> stronger, and protons repel harder, so big nuclei struggle to hold together. Weaker, and electrons are held loosely, so chemical bonds weaken. Stars change too.</p>",
  s: "<p><b>What it is:</b> the strong nuclear force: a super-strong glue between protons and neutrons that only works when they are touching.</p><p><b>What it controls:</b> whether nuclei hold together, and fusion. Stars shine by sticking small nuclei together to build bigger ones; the very first step is gluing one proton to one neutron. Stars also need this glue to be just right to make carbon.</p><p><b>If you change it:</b> stronger glue lets things stick that shouldn't; weaker glue lets things fall apart that should stick. Carbon-making in stars is especially touchy.</p>",
+ w: "<p><b>What it is:</b> the weak nuclear force. Its strength is set by the Fermi constant, G<sub>F</sub>. It is the only force that can turn a neutron into a proton (giving off an electron and a tiny “ghost” particle called a neutrino). A neutron left on its own lasts only about 15 minutes before it changes.</p><p><b>What it controls:</b> right after the Big Bang it was a race: neutrons kept turning into protons while others paired up to make helium. The result was about ¾ hydrogen and ¼ helium. Much later, when a giant star collapses, a flood of neutrinos helps blast its outer layers into space as a supernova, scattering the carbon and oxygen it made.</p><p><b>If you change it:</b> the race comes out differently, and the neutrinos either get stuck in the collapsing star or slip out without pushing.</p>",
  m: "<p><b>What it is:</b> protons and neutrons are each built from three smaller pieces called quarks (proton = up, up, down; neutron = up, down, down). This knob sets how much heavier the down quark is than the up quark.</p><p><b>What it controls:</b> the neutron is slightly heavier than the proton (by 0.14%). Because a lone neutron is heavier, it is energetically favorable for it to decay into a proton (plus an electron). A proton has nothing lighter to decay into, so it is stable and hydrogen lasts.</p><p><b>If you change it:</b> widen or shrink the gap and that energy balance shifts. Electromagnetism also adds a little mass to the proton.</p>",
  L: "<p><b>What it is:</b> Λ, the cosmological constant: the energy of empty space itself (“dark energy”). It pushes space apart, and because there is more empty space as the universe grows, its push wins in the end.</p><p><b>What it controls:</b> a race. Gravity tries to gather gas into galaxies; dark energy tries to spread everything apart. In our universe gravity got a head start and built galaxies before dark energy took over, about 5 billion years ago.</p><p><b>If you change it:</b> a bigger push spreads things out sooner. Use the switch under the slider to make Λ negative: then empty space <i>pulls</i> inward instead of pushing outward.</p>",
  Q: "<p><b>What it is:</b> Q measures how lumpy the universe was just after the Big Bang. The baby universe was almost perfectly smooth: the CMB shows hot and cold spots of about 1 part in 100,000.</p><p><b>What it controls:</b> those tiny bumps are the seeds of every galaxy. A slightly denser spot has slightly more gravity, pulls in more matter, and grows: the rich get richer.</p><p><b>If you change it:</b> bigger bumps collapse sooner and harder; smaller bumps take longer to collapse, and may not make it before dark energy takes over.</p>",
@@ -188,6 +190,8 @@ const KNOBS = [
    fmt:v=>{const f=Math.pow(10,v);return v===0?'×1 (ours, α ≈ 1/137)':`×${f.toFixed(3)}  (α ≈ 1/${(137/f).toFixed(1)})`}, short:v=>`α ×${Math.pow(10,v).toFixed(3)}`},
   {id:'s', name:'Strong nuclear force', min:-15, max:15, step:0.1, def:0, log:false, unit:'%',
    hint:'The glue that holds protons and neutrons together.', fmt:v=>v===0?'±0% (ours)':`${v>0?'+':''}${v.toFixed(1)}%`, short:v=>`strong ${v>0?'+':''}${v.toFixed(1)}%`},
+  {id:'w', name:'Weak nuclear force (G_F)', label:'<span>Weak nuclear force (G<sub>F</sub>)</span>', min:-2, max:2, step:0.1, def:0, log:true, unit:'×10^',
+   hint:'Turns neutrons into protons. Sets the Big Bang’s helium and helps supernovas explode.', fmt:v=>v===0?'×1 (ours)':`×10^${+v.toFixed(1)}`, short:v=>`weak ×10^${+v.toFixed(1)}`},
   {id:'m', name:'Down–up quark mass gap', min:0, max:3, step:0.02, def:1, log:false, unit:'×',
    hint:'Sets how much heavier the neutron is than the proton.', fmt:v=>v===1?'×1 (ours)':`×${v.toFixed(2)}`, short:v=>`quark gap ×${v.toFixed(2)}`},
   {id:'L', name:'Dark energy (Λ)', min:-3, max:6, step:0.1, def:0, log:true, unit:'×10^',
@@ -203,7 +207,7 @@ const snap=(k,v)=>{v=Math.min(k.max,Math.max(k.min,v)); return +(Math.round((v-k
 KNOBS.forEach(k=>{
   state[k.id]=k.def;
   const d=document.createElement('div'); d.className='knob';
-  d.innerHTML=`<div class="top"><label for="k_${k.id}">${k.name} <button class="info" data-for="${k.id}" aria-label="About ${k.name}">i</button></label><span class="val" id="v_${k.id}"></span></div>
+  d.innerHTML=`<div class="top"><label for="k_${k.id}">${k.label||k.name} <button class="info" data-for="${k.id}" aria-label="About ${k.name}">i</button></label><span class="val" id="v_${k.id}"></span></div>
     <div class="row"><button class="step" data-k="${k.id}" data-d="-1" aria-label="Turn ${k.name} down one notch">−</button>
       <div class="track"><div class="rail"></div>
         <div class="ours" style="left:calc(7.5px + (100% - 15px) * ${(k.def-k.min)/(k.max-k.min)})"><span>ours</span></div>
@@ -236,10 +240,10 @@ document.querySelectorAll('.info').forEach(b=>b.addEventListener('click',e=>{e.p
 // stage ends the story, but later stages still report any problem of their own.
 // =====================================================================================
 function fmtTime(gyr){ if(gyr>=1) return `${gyr<100?gyr.toFixed(1):Number(gyr.toPrecision(2)).toLocaleString('en-US')} billion years`; const y=gyr*1e9; if(y>=1e6) return `${(y/1e6).toFixed(y<1e7?1:0)} million years`; if(y>=1) return `${Math.round(y).toLocaleString()} years`; return `${(y*365).toFixed(1)} days`; }
-function isOurs(S){return S.G===0&&S.a===0&&S.s===0&&S.m===1&&S.L===0&&S.Q===0&&S.dims===3&&(S.Lsign||1)===1}
+function isOurs(S){return S.G===0&&S.a===0&&S.s===0&&(S.w||0)===0&&S.m===1&&S.L===0&&S.Q===0&&S.dims===3&&(S.Lsign||1)===1}
 
 function evaluate(S){
-  const g=Math.pow(10,S.G), a=Math.pow(10,S.a), ds=S.s, mq=S.m, L=Math.pow(10,S.L), q=Math.pow(10,S.Q), Ls=(S.Lsign||1);
+  const g=Math.pow(10,S.G), a=Math.pow(10,S.a), wf=Math.pow(10,S.w||0), ds=S.s, mq=S.m, L=Math.pow(10,S.L), q=Math.pow(10,S.Q), Ls=(S.Lsign||1);
   const tCrunch = Ls<0 ? 35/Math.sqrt(L) : Infinity;   // Gyr until a Big Crunch (negative Λ)
   const viz={mode:'galaxies',starColor:'#ffffff',q,short:false,dims:S.dims};
   const own=[]; // each: {name,time,status,text,cause}
@@ -265,17 +269,30 @@ function evaluate(S){
   if(dnp > Bd + 0.511) nuc.push(['Neutrons are so much heavier that they decay even inside nuclei. Everything except a lone proton falls apart: only hydrogen.','only hydrogen']);
   if(ds > diThresh) nuc.push(['The glue is strong enough to stick two protons together. Hydrogen fuses away in the first minutes after the Big Bang: no water and no long, steady stars. (Some physicists argue stars could still burn, just differently.)','hydrogen used up']);
   if(a/137 > 0.1) nuc.push(['Electric push between protons overwhelms the glue in big nuclei: nothing from carbon onward holds together.','no big nuclei']);
+  // the neutron/proton race (weak force): freeze-out temperature ~ G^(1/6) / G_F^(2/3); neutron lifetime ~ 1/(G_F² Δm⁵)
+  const Tf = 0.8*Math.pow(g,1/6)/Math.pow(wf,2/3);                    // MeV
+  const tau = 880/(wf*wf*Math.pow(Math.max(dnp,0.511)/1.29,5));         // s
+  const tBBN = Bd>0 ? 180*Math.pow(2.22/Bd,2)/Math.sqrt(g) : Infinity;  // s, when deuterium can finally hold together
+  const xn = dnp>0 ? 1/(1+Math.exp(dnp/Tf)) : 0.5;
+  const He = Math.min(1, 2*xn*Math.exp(-tBBN/tau));                     // helium fraction by mass
+  const pct = He<0.01 ? 'less than 1%' : `about ${Math.round(He*100)}%`;
+  if(Bd>0 && dnp<=Bd+0.511 && He>0.9) nuc.push([`Neutrons barely have time to turn into protons, so almost all of them end up in helium. The Big Bang makes ${pct} helium and almost no hydrogen: very little water, and stars burn out fast.`,'helium universe']);
+  viz.helium=He;
   if(nuc.length) add('Nuclear binding','3 min','fail',nuc.map(x=>x[0]).join(' '),nuc[0][1]);
-  else add('Nuclear binding','3 min','ok','Protons and neutrons stick together just enough. The Big Bang leaves about ¾ hydrogen and ¼ helium.');
+  else if(He>0.6) add('Nuclear binding','3 min','warn',`The neutron/proton race leaves lots of neutrons, so the Big Bang makes ${pct} helium. Much less hydrogen is left for water and for long-lived stars.`);
+  else if(He<0.05) add('Nuclear binding','3 min','ok',`Neutrons turn into protons so quickly that few are left to build helium: the Big Bang makes ${pct} helium, an almost pure-hydrogen start. That’s fine on its own: stars can still form.`);
+  else add('Nuclear binding','3 min','ok',`Protons and neutrons stick together just enough. The Big Bang leaves ${pct} helium; the rest is hydrogen.`);
 
   // 4. Galaxies
-  const lamMax = Ls>0 ? 200*q*q*q : Infinity;   // how much dark energy galaxies can survive, given the ripples
+  const lamMax0 = Ls>0 ? 200*q*q*q : Infinity;  // how much dark energy galaxies can survive, given the ripples (our gravity)
+  const lamMax = lamMax0*g;                       // stronger gravity gathers gas faster, so it can survive more dark energy
   viz.struct = q<0.1?'faint' : L>lamMax?'lambda' : q>300?'bh' : q>10?'dense' : 'normal';
   viz.expand = (Ls>0 && L>lamMax) ? 'fast' : (Ls>0 && L>20) ? 'mild' : 'none';
   viz.tCrunch = tCrunch; viz.crunch = tCrunch < 30;
   if(q < 0.1) add('Galaxies','~400 Myr','fail',`Q ≈ ${(1e-5*q).toExponential(1)}. The ripples are too faint: gravity never gathers the gas into galaxies. The universe stays a thin, dark fog.`,'no galaxies');
   else if(L > lamMax){
-    if(L > 1.5) add('Galaxies','~400 Myr','fail',`Dark energy is ×${L<1000?L.toFixed(0):L.toExponential(0)} ours. It spreads space apart before gravity can gather the gas into galaxies: no galaxies, just thinning gas.`,'no galaxies');
+    if(L <= lamMax0) add('Galaxies','~400 Myr','fail',`Gravity is so weak (×10^${+S.G.toFixed(2)}) that it gathers gas too slowly. Dark energy takes over and spreads everything apart before galaxies can form.`,'no galaxies');
+    else if(L > 1.5) add('Galaxies','~400 Myr','fail',`Dark energy is ×${L<1000?L.toFixed(0):L.toExponential(0)} ours. It spreads space apart before gravity can gather the gas into galaxies: no galaxies, just thinning gas.`,'no galaxies');
     else add('Galaxies','~400 Myr','fail',`The ripples are so faint (Q ≈ ${(1e-5*q).toExponential(1)}) that they grow too slowly. Dark energy takes over before any of them can collapse into galaxies.`,'no galaxies');
   }
   else if(q > 300) add('Galaxies','~1 Myr','fail','The ripples are so big that most matter collapses straight into black holes instead of stars.','black holes');
@@ -286,16 +303,23 @@ function evaluate(S){
   const tStar = 10*a*a/g;                // Gyr, Sun-like star
   const carter = Math.pow(a,12)/g;
   const life = `A Sun-like star lives about ${fmtTime(tStar)}.`;
-  if(carter > 50){ viz.starColor='#d98a7a'; add('Stars','~500 Myr','warn',life+' Every star is a cool red dwarf. Some physicists think planets might form less easily.'); }
-  else if(carter < 0.02){ viz.starColor='#e8f0ff'; add('Stars','~500 Myr','warn',life+' Every star is a hot blue giant that burns fast.'); }
+  if(carter > 50){ viz.starColor='#d98a7a'; add('Stars','~500 Myr','warn',life+' Every star is big, cool and red, glowing like an ember. Some physicists think planets might form less easily.'); }
+  else if(carter < 0.02){ viz.starColor='#e8f0ff'; add('Stars','~500 Myr','warn',life+' Every star is small, hot and blue, and burns through its fuel fast.'); }
   else add('Stars','~500 Myr','ok',life+(tStar<4?' Stars are small and burn fast.':tStar>40?' Stars are big and burn slowly.':' Stars shine steadily.'));
   if(tStar<1) viz.short=true;
   viz.tStar=tStar; viz.carter=carter; viz.dying = tStar<4;
 
   // 6. Carbon & oxygen (carbon-making in stars depends on a delicate nuclear "sweet spot")
-  const da=Math.abs(a-1)*100, ads=Math.abs(ds);
-  if(ads>2 || da>15) add('Carbon & oxygen','~1 Gyr','fail','Stars make almost no carbon, or burn all of it into oxygen. Carbon-making depends on a delicate nuclear “sweet spot” set by the strong force and electromagnetism, and this universe misses it.','no carbon');
-  else if(ads>0.5 || da>4) add('Carbon & oxygen','~1 Gyr','warn','Close to the edge of the sweet spot: stars make much less carbon or much less oxygen than ours do.');
+  const da=Math.abs(a-1)*100, ads=Math.abs(ds), wl=Math.abs(S.w||0);
+  const co=[];
+  if(ads>2 || da>15) co.push(['fail','Stars make almost no carbon, or burn all of it into oxygen. Carbon-making depends on a delicate nuclear “sweet spot” set by the strong force and electromagnetism, and this universe misses it.','no carbon']);
+  else if(ads>0.5 || da>4) co.push(['warn','Close to the edge of the sweet spot: stars make much less carbon or much less oxygen than ours do.']);
+  const snMsg = (S.w||0)>0 ? 'Neutrinos are trapped inside the collapsing star instead of streaming out' : 'Neutrinos slip out of the collapsing star without pushing on anything';
+  if(wl>1.05) co.push(['fail',`${snMsg}, so dying stars don’t explode as supernovas. Their carbon and oxygen stay locked inside dead stars and never reach new planets.`,'no supernovas']);
+  else if(wl>0.45) co.push(['warn',`${snMsg} more than they do in ours, so supernovas are weaker and scatter less carbon and oxygen into space.`]);
+  const coBad=co.find(x=>x[0]==='fail');
+  if(coBad) add('Carbon & oxygen','~1 Gyr','fail',co.map(x=>x[1]).join(' '),coBad[2]);
+  else if(co.length) add('Carbon & oxygen','~1 Gyr','warn',co.map(x=>x[1]).join(' '));
   else add('Carbon & oxygen','~1 Gyr','ok','Stars forge carbon and oxygen, and exploding stars scatter them into space.');
 
   // 7. Planets & life (star lifetimes, and a Big Crunch if Λ is negative)
@@ -320,13 +344,13 @@ function evaluate(S){
   });
   if(firstFail>=0 && firstFail<4 && viz.mode==='galaxies'){
     const c=own[firstFail].cause;
-    viz.mode = firstFail===1 ? 'neutron' : firstFail===3 ? (c==='black holes'?'bh':'smooth') : firstFail===2 ? ((c==='hydrogen used up'||c==='no big nuclei')?'galaxies':'dark') : viz.mode;
-    if(firstFail===2 && c==='hydrogen used up') viz.short=true;
+    viz.mode = firstFail===1 ? 'neutron' : firstFail===3 ? (c==='black holes'?'bh':'smooth') : firstFail===2 ? ((c==='hydrogen used up'||c==='no big nuclei'||c==='helium universe')?'galaxies':'dark') : viz.mode;
+    if(firstFail===2 && (c==='hydrogen used up'||c==='helium universe')) viz.short=true;
   }
   const fails=st.filter(x=>x.status==='fail').length, warns=st.filter(x=>x.status==='warn').length;
   let verdict, vcol, vclass;
   if(firstFail>=0){ const extra=fails-1; verdict=`Lifeless: ${own[firstFail].cause}${extra>0?` (+${extra} more problem${extra>1?'s':''})`:''}`; vcol='var(--fail)'; vclass='fail'; }
-  else if(warns){ verdict='Marginal: life faces headwinds'; vcol='var(--warn)'; vclass='warn'; }
+  else if(warns){ verdict='Marginal: life is difficult'; vcol='var(--warn)'; vclass='warn'; }
   else { verdict = isOurs(S)? 'Our universe ☺' : 'Life-friendly universe'; vcol='var(--ok)'; vclass='ok'; }
   viz.cause = firstFail>=0?own[firstFail].cause:null; viz.vclass=vclass; viz.ours=isOurs(S); viz.dense = q>10 && q<=300;
   return {stages:st, verdict, vcol, vclass, habitable:firstFail<0, firstFail, cause:firstFail>=0?own[firstFail].cause:null, viz};
@@ -415,7 +439,7 @@ function nbmap(t){ t=Math.max(0,Math.min(1,t))*(NB.length-1); const i=Math.min(N
 const CM=[[18,34,64],[64,104,150],[196,206,218],[214,170,120],[160,96,62]];
 function cmap(t){ t=Math.max(0,Math.min(1,t))*(CM.length-1); const i=Math.min(CM.length-2,Math.floor(t)), f=t-i, a=CM[i], b=CM[i+1]; return [a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,a[2]+(b[2]-a[2])*f]; }
 
-const T={flash:1.2, cmbIn:1.2, cmbHold:3.4, grow:7.0, final:8.2};
+const T={flash:2.4, cmbIn:2.3, cmbHold:4.3, grow:7.8, final:9.0};
 function dmaxFor(v){ const s=v.struct; return DCRIT*(s==='faint'?0.08 : s==='lambda'?0.35 : s==='bh'?3.0 : s==='dense'?2.3 : 1.7); }
 
 function buildScene(viz,seed){
@@ -436,7 +460,7 @@ function buildScene(viz,seed){
   if(viz.mode==='galaxies'){
     const n=Math.round(Math.min(40,Math.max(5,12*Math.pow(viz.q,0.5))));
     peaks.slice(0,n).forEach(p=>{ const g={x:p.x,y:p.y,r:(8+R()*16)*devicePixelRatio/Math.pow(viz.q,0.25),rot:R()*6,tilt:0.3+R()*0.7,arms:2+Math.floor(R()*2),sp:(R()-.5)*0.0003,clumps:[]};
-      if(viz.stellar==='red') g.r*=0.85;
+      
       for(let c=0;c<7;c++){ const ang=R()*6.3, d=Math.pow(R(),0.7)*g.r*1.1; g.clumps.push({x:Math.cos(ang)*d,y:Math.sin(ang)*d*(0.5+R()*0.6),r:(0.25+R()*0.35)*g.r,ph:R()*10}); }
       sc.gals.push(g); });
     sampleDense(420).forEach(p=>sc.stars.push({...p,s:R()*1.5+0.3,ph:R()*10,life:R()}));
@@ -513,8 +537,11 @@ function consequence(v, crunched){
   if(v.expand==='fast') return ['Dark energy wins: space flies apart', 'Matter is swept apart before gravity can build galaxies.'];
   if(v.mode==='smooth') return ['The ripples were too faint', 'Gas just thins out forever. No galaxies, no stars.'];
   if(v.mode==='dark') return ['No chemistry', v.cause ? `Stars may shine, but ${v.cause}.` : 'The building blocks of atoms never come together.'];
-  if(v.stellar==='blue') return ['Stars live fast and die young', `Big, hot, blue stars explode as supernovas after only ~${fmtGyr(v.tStar)}. Galaxies stay ragged clumps.`];
-  if(v.stellar==='red') return ['Tiny red stars', 'Weak gravity only builds small, dim, red stars, so galaxies glow red.'];
+  if(v.cause==='helium universe') return ['A helium universe', 'The Big Bang left almost no hydrogen: little water, and stars burn out fast.'];
+  if(v.cause==='hydrogen used up') return ['Hydrogen used up', 'The Big Bang fused away the hydrogen: no water, and stars burn out fast.'];
+  if(v.cause==='no supernovas') return ['Stars die quietly', 'No supernovas: carbon and oxygen stay locked inside dead stars.'];
+  if(v.stellar==='blue') return ['Stars live fast and die young', `Small, hot, blue stars burn out after only ~${fmtGyr(v.tStar)}, and the biggest blow up as supernovas. Galaxies stay ragged clumps.`];
+  if(v.stellar==='red') return ['Big, cool, red stars', 'Weak gravity builds large, slow-burning stars that glow red like embers, so galaxies glow red.'];
   if(v.expand==='mild') return ['Galaxies form, then dark energy takes over', 'They stop growing early and drift apart faster.'];
   if(v.cause) return ['Galaxies and stars, but…', `${v.cause}.`];
   return ['Spiral galaxies full of long-lived stars', 'Billions of years of steady starlight: time for planets.'];
@@ -527,17 +554,37 @@ function draw(now){
   const settleStart = hasCMB ? T.grow : T.flash, settleLen = hasCMB ? (T.final-T.grow) : 1.5;
   const settle=clamp01((t-settleStart)/settleLen);
 
-  if(t<T.flash+1.2){
-    const k=clamp01(1-(t-T.flash*0.5)/1.4);
-    const g=cx.createRadialGradient(W/2,H/2,0,W/2,H/2,Math.max(W,H)*(0.1+t*0.5));
-    g.addColorStop(0,`rgba(240,246,255,${0.9*k})`); g.addColorStop(1,'rgba(40,70,120,0)');
-    cx.fillStyle=g; cx.fillRect(0,0,W,H);
-    scene.burst.forEach(p=>{const d=t*p.sp*Math.max(W,H)*0.6; cx.fillStyle=`hsla(${p.hue},35%,80%,${k})`; cx.fillRect(W/2+Math.cos(p.ang)*d,H/2+Math.sin(p.ang)*d,2*devicePixelRatio,2*devicePixelRatio);});
+  if(t<T.flash+0.4){
+    // The Big Bang happens everywhere: space starts hot and dense (white) and the whole grid stretches at once.
+    const dp=devicePixelRatio, k=clamp01(1-(t-T.flash+0.6)/1.0);          // fades out as the CMB arrives
+    const stops=[[0,[255,255,255]],[0.5,[255,250,235]],[1.0,[255,214,150]],[1.5,[225,120,60]],[2.0,[95,32,22]],[2.4,[0,0,0]]];
+    let c=stops[stops.length-1][1];
+    for(let i=0;i<stops.length-1;i++){ const [t1,c1]=stops[i],[t2,c2]=stops[i+1]; if(t>=t1&&t<t2){ const f=(t-t1)/(t2-t1); c=c1.map((v,j)=>Math.round(v+(c2[j]-v)*f)); break; } }
+    cx.globalAlpha=k; cx.fillStyle=`rgb(${c[0]},${c[1]},${c[2]})`; cx.fillRect(0,0,W,H);
+    const lum=(0.3*c[0]+0.59*c[1]+0.11*c[2])/255;
+    const sp=Math.max(2.5*dp, 2.5*dp*Math.exp(1.85*t));                       // grid spacing grows everywhere at once
+    cx.strokeStyle = lum>0.55 ? `rgba(120,90,60,${0.45*k})` : `rgba(255,255,255,${0.4*k})`;
+    cx.lineWidth=Math.max(0.6, Math.min(1.2, sp/8))*dp;
+    const ox=(W/2)%sp, oy=(H/2)%sp;
+    cx.beginPath();
+    for(let x=ox;x<=W;x+=sp){ cx.moveTo(x,0); cx.lineTo(x,H); }
+    for(let y=oy;y<=H;y+=sp){ cx.moveTo(0,y); cx.lineTo(W,y); }
+    cx.stroke();
+    // bits of matter ride along with the grid (they don't fly out from a point; the space between them grows)
+    if(sp>=9*dp){   // specks of matter fixed to the grid: they move apart only because the space between them grows
+      const hsh=(i,j,n)=>{ const v=Math.sin(i*127.1+j*311.7+n*74.7)*43758.5453; return v-Math.floor(v); };
+      cx.fillStyle = lum>0.55 ? `rgba(150,80,40,${0.8*k})` : `rgba(255,230,200,${0.9*k})`;
+      const i0=Math.floor(-W/2/sp)-1, i1=Math.ceil(W/2/sp)+1, j0=Math.floor(-H/2/sp)-1, j1=Math.ceil(H/2/sp)+1;
+      for(let i=i0;i<=i1;i++) for(let j=j0;j<=j1;j++){ if(hsh(i,j,1)>0.4) continue;
+        cx.fillRect(W/2+(i+hsh(i,j,2))*sp, H/2+(j+hsh(i,j,3))*sp, 1.6*dp, 1.6*dp); }
+    }
+    cx.globalAlpha=1;
+    if(t<T.flash-0.3) caption('t ≈ 0 · the Big Bang, everywhere at once', 'Space starts hot and dense everywhere, and all of it expands. No center, no edge.', clamp01(t/0.4)*clamp01((T.flash-0.3-t)/0.3));
   }
 
-  if(hasCMB && t>T.cmbIn*0.6){
+  if(hasCMB && t>T.cmbIn-0.5){
     const p = clamp01((t-T.cmbHold)/(T.grow-T.cmbHold));
-    const a = clamp01((t-T.cmbIn*0.6)/0.8) * (v.mode==='galaxies'||v.mode==='bh' ? 1-0.65*settle : 1-settle);
+    const a = clamp01((t-T.cmbIn+0.5)/0.7) * (v.mode==='galaxies'||v.mode==='bh' ? 1-0.65*settle : 1-settle);
     const handOff = settle>=1 && (v.mode==='galaxies'||v.mode==='bh');   // the final scene takes over drawing the web
     if(a>0.01 && !handOff) drawField(p, a);
     const s=v.struct;
@@ -584,9 +631,9 @@ function draw(now){
     const scol = heat>0.05 ? `rgb(${Math.round(255-40*heat)},${Math.round(240-10*heat)},255)` : st==='blue'?'#9cc4ff' : st==='red'?'#e0705a' : v.starColor;
     scene.stars.forEach(s=>{ const [x,y]=P(s.x,s.y); let a=0.35+0.35*Math.sin(t*2+s.ph);
       if(v.short||st==='blue'){ a = ((t*0.8+s.life*5)%1)<0.25 ? 1 : 0.15; }
-      const sz = st==='blue'? s.s*1.6 : st==='red'? Math.max(0.5,s.s*0.55) : s.s;
+      const sz = st==='blue'? s.s*1.6 : st==='red'? s.s*1.5 : s.s;
       cx.fillStyle=scol; cx.globalAlpha=settle*Math.min(1,a+heat); cx.fillRect(x,y,sz*dp,sz*dp);
-      if(st==='blue'){ cx.globalAlpha=settle*a*0.25; cx.beginPath(); cx.arc(x,y,sz*2.4*dp,0,7); cx.fill(); } });
+      if(st==='blue'||st==='red'){ cx.globalAlpha=settle*a*(st==='red'?0.3:0.25); cx.beginPath(); cx.arc(x,y,sz*(st==='red'?2.0:2.4)*dp,0,7); cx.fill(); } });
     cx.globalAlpha=settle;
     scene.gals.forEach(gl=>{ gl.rot+=gl.sp*16; const [gx,gy]=P(gl.x,gl.y); cx.save(); cx.translate(gx,gy);
       if(st==='blue'){ // ragged, clumpy, irregular galaxies full of hot young stars
@@ -663,15 +710,15 @@ function renderLog(){
 }
 document.getElementById('clearlog').onclick=()=>{ runs=[]; renderLog(); drawMap(); };
 document.getElementById('csv').onclick=()=>{
-  const head=['run','G_exponent','alpha_exponent','strong_percent','quark_gap_multiplier','Lambda_sign','Lambda_exponent','Q_exponent','dimensions','verdict'];
-  const rows=runs.slice().reverse().map(r=>[r.n,r.S.G,r.S.a,r.S.s,r.S.m,(r.S.Lsign||1),r.S.L,r.S.Q,r.S.dims,`"${r.verdict}"`].join(','));
+  const head=['run','G_exponent','alpha_exponent','strong_percent','weak_exponent','quark_gap_multiplier','Lambda_sign','Lambda_exponent','Q_exponent','dimensions','verdict'];
+  const rows=runs.slice().reverse().map(r=>[r.n,r.S.G,r.S.a,r.S.s,(r.S.w||0),r.S.m,(r.S.Lsign||1),r.S.L,r.S.Q,r.S.dims,`"${r.verdict}"`].join(','));
   const blob=new Blob([head.join(',')+'\n'+rows.join('\n')],{type:'text/csv'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='universe_tuner_notebook.csv'; a.click();
 };
 
 const mapC=document.getElementById('map'), mx=mapC.getContext('2d');
 const selX=document.getElementById('mx'), selY=document.getElementById('my');
-KNOBS.forEach(k=>{ selX.add(new Option(k.name,k.id)); selY.add(new Option(k.name,k.id)); });
+KNOBS.forEach(k=>{ const n=k.name.replace('G_F','Fermi constant'); selX.add(new Option(n,k.id)); selY.add(new Option(n,k.id)); });
 selX.value='G'; selY.value='a';
 [selX,selY,document.getElementById('onlyours')].forEach(e=>e.onchange=drawMap);
 function axisLabel(k,v){ if(k.unit==='×10^') return `×10^${+v.toFixed(2)}`; if(k.unit==='%') return `${v>0?'+':''}${+v.toFixed(1)}%`; return `×${+v.toFixed(2)}`; }
@@ -686,8 +733,8 @@ function drawMap(){
   for(let i=0;i<=4;i++){ const vx=kx.min+(kx.max-kx.min)*i/4, vy=ky.min+(ky.max-ky.min)*i/4;
     mx.textAlign=i===0?'left':i===4?'right':'center'; mx.fillText(axisLabel(kx,vx),X(vx),H-B+14*dp);
     mx.textAlign='right'; mx.fillText(axisLabel(ky,vy),L-4*dp,Y(vy)+3*dp); }
-  mx.textAlign='center'; mx.font=`${11*dp}px "IBM Plex Sans",sans-serif`; mx.fillText(kx.name+' →',L+(W-L-Rm)/2,H-6*dp);
-  mx.save(); mx.translate(10*dp,Tm+(H-B-Tm)/2); mx.rotate(-Math.PI/2); mx.fillText(ky.name+' →',0,0); mx.restore();
+  mx.textAlign='center'; mx.font=`${11*dp}px "IBM Plex Sans",sans-serif`; mx.fillText(kx.name.replace('G_F','Fermi constant')+' →',L+(W-L-Rm)/2,H-6*dp);
+  mx.save(); mx.translate(10*dp,Tm+(H-B-Tm)/2); mx.rotate(-Math.PI/2); mx.fillText(ky.name.replace('G_F','Fermi constant')+' →',0,0); mx.restore();
   mx.strokeStyle='rgba(255,255,255,.25)'; mx.setLineDash([3*dp,3*dp]);
   mx.beginPath(); mx.moveTo(X(kx.def),Tm); mx.lineTo(X(kx.def),H-B); mx.moveTo(L,Y(ky.def)); mx.lineTo(W-Rm,Y(ky.def)); mx.stroke(); mx.setLineDash([]);
   const only=document.getElementById('onlyours').checked;
@@ -722,8 +769,8 @@ document.getElementById('rand1000').onclick=()=>{
     (top.length?`<p class="sub" style="margin:0 0 4px">What killed the lifeless ones first:</p>`+top.map(([c,n])=>`<div class="bar"><span class="lbl">${c}</span><span class="fill" style="width:${Math.max(2,180*n/mxN)}px"></span><span class="n">${n}</span></div>`).join(''):'');
 };
 
-const PRESETS={ ours:{G:0,a:0,s:0,m:1,L:0,Q:0,dims:3,Lsign:1} };
-document.querySelectorAll('.presets button').forEach(b=>b.onclick=()=>{ Object.assign(state,PRESETS[b.dataset.p]); refreshVals(); create(); });
+const PRESETS={ ours:{G:0,a:0,s:0,w:0,m:1,L:0,Q:0,dims:3,Lsign:1} };
+document.querySelectorAll('.presets button').forEach(b=>b.onclick=()=>{ Object.assign(state,PRESETS[b.dataset.p]); refreshVals(); });
 
 // initial static sky
 scene=buildScene({mode:'smooth'}); t0=performance.now()-5000; draw(performance.now()); drawMap();
